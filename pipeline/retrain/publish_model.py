@@ -21,6 +21,15 @@ def publish_model(train_info: dict) -> str:
     если pending-файл уже перенесён.
     Возвращает id опубликованной версии.
     """
+    if not train_info.get("publish_allowed", True):
+        # Airflow показывает понятный skipped вместо ошибочного прогона. Главное
+        # свойство: latest.txt и training_state остаются неизменными.
+        from airflow.exceptions import AirflowSkipException
+
+        raise AirflowSkipException(
+            "Кандидат не опубликован: " + train_info.get("publish_reason", "метрика хуже активной")
+        )
+
     version = train_info["version"]
     staging_model = Path(train_info["staging_model"])
     final_model = MODELS_DIR / f"my_catboost_{version}.cbm"

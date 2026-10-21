@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 
 from pipeline.retrain.extract_month_batch import extract_month_batch
+from pipeline.retrain.evaluate_candidate import evaluate_candidate
 from pipeline.retrain.fit_catboost import fit_catboost
 from pipeline.retrain.preprocess_dataset import preprocess_dataset
 from pipeline.retrain.publish_model import publish_model
@@ -48,7 +49,8 @@ def retrain_catboost():
     split = task(time_train_test_split, task_id="time_train_test_split")(slid)
     processed = task(preprocess_dataset, task_id="preprocess_dataset")(split)
     trained = task(fit_catboost, task_id="fit_catboost")(processed)
-    task(publish_model, task_id="publish_model")(trained)
+    evaluated = task(evaluate_candidate, task_id="evaluate_candidate")(trained)
+    task(publish_model, task_id="publish_model")(evaluated)
 
 
 retrain_catboost()

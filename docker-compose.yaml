@@ -7,6 +7,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     ports:
       - "2181:2181"
 
@@ -20,6 +21,7 @@ services:
     ports:
       - "9095:9095"
     environment:
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9095
@@ -63,6 +65,7 @@ services:
     image: provectuslabs/kafka-ui:latest
     depends_on:
       - kafka
+    profiles: ["tools"]
     networks:
       - ml-scorer
     ports:
@@ -185,6 +188,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow_state/airflow.db
       AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+      AIRFLOW__WEBSERVER__WORKERS: "1"
       PYTHONPATH: /opt/airflow
       _AIRFLOW_WWW_USER_USERNAME: admin
       _AIRFLOW_WWW_USER_PASSWORD: admin
@@ -195,6 +199,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TRAINING_DATA_DIR: /opt/airflow/training_data
       MODELS_DIR: /opt/airflow/models
+      DQ_REPORTS_DIR: /opt/airflow/dq_reports
       FRAUD_SRC: /opt/airflow/fraud_src
     volumes:
       - ./dags:/opt/airflow/dags
@@ -202,6 +207,7 @@ services:
       - ./fraud_detector/src:/opt/airflow/fraud_src:ro
       - training_data:/opt/airflow/training_data
       - model_registry:/opt/airflow/models
+      - dq_reports:/opt/airflow/dq_reports
       - airflow_state:/opt/airflow/airflow_state
     ports:
       - "8081:8080"
@@ -220,4 +226,5 @@ volumes:
   postgres_data:
   training_data:
   model_registry:
+  dq_reports:
   airflow_state:
