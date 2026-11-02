@@ -4,6 +4,7 @@
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+dbt/.user.yml
 .docker-pull*.log
 .env
 *.DS_Store
