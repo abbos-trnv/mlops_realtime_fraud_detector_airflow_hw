@@ -6,10 +6,10 @@ unit_tests:
     given:
       - input: source('raw', 'transactions')
         rows:
-          - {transaction_time: '2020-01-06 13:00:00', merch: ' shop ', cat_id: ' FOOD ', amount: 99.99, name_1: Ann, name_2: Smith, gender: f, street: Main, us_state: ca, target: 0}
-          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 100.0, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 0}
-          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 499.99, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 0}
-          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 500.0, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 1}
+          - {transaction_time: '2020-01-06 13:00:00', merch: ' shop ', cat_id: ' FOOD ', amount: 99.99, name_1: Ann, name_2: Smith, gender: f, street: Main, us_state: ca, target: 0, one_city: Test, post_code: '10000', lat: 40.0, lon: -70.0, population_city: 1000, jobs: Engineer, merchant_lat: 40.1, merchant_lon: -70.1}
+          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 100.0, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 0, one_city: Test, post_code: '10000', lat: 40.0, lon: -70.0, population_city: 1000, jobs: Engineer, merchant_lat: 40.1, merchant_lon: -70.1}
+          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 499.99, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 0, one_city: Test, post_code: '10000', lat: 40.0, lon: -70.0, population_city: 1000, jobs: Engineer, merchant_lat: 40.1, merchant_lon: -70.1}
+          - {transaction_time: '2020-01-06 13:00:00', merch: shop, cat_id: food, amount: 500.0, name_1: Ann, name_2: Smith, gender: F, street: Main, us_state: CA, target: 1, one_city: Test, post_code: '10000', lat: 40.0, lon: -70.0, population_city: 1000, jobs: Engineer, merchant_lat: 40.1, merchant_lon: -70.1}
     expect:
       rows:
         - {amount: 99.99, amount_bucket: SMALL, merchant: shop, category: food, state: CA, gender: F, weekday: 1, transaction_hour: 13}
@@ -22,9 +22,9 @@ unit_tests:
     given:
       - input: ref('stg_transactions')
         rows:
-          - {category: food, amount: 100.0, is_fraud: 0}
-          - {category: food, amount: 300.0, is_fraud: 1}
-          - {category: travel, amount: 50.0, is_fraud: 0}
+          - {category: food, amount: 100.0, is_fraud: 0, transaction_time: '2020-01-01 00:00:00', transaction_date: '2020-01-01', transaction_hour: 0, weekday: 3, merchant: shop, gender: F, state: CA, customer_id: test, amount_bucket: SMALL}
+          - {category: food, amount: 300.0, is_fraud: 1, transaction_time: '2020-01-01 00:00:00', transaction_date: '2020-01-01', transaction_hour: 0, weekday: 3, merchant: shop, gender: F, state: CA, customer_id: test, amount_bucket: SMALL}
+          - {category: travel, amount: 50.0, is_fraud: 0, transaction_time: '2020-01-01 00:00:00', transaction_date: '2020-01-01', transaction_hour: 0, weekday: 3, merchant: shop, gender: F, state: CA, customer_id: test, amount_bucket: SMALL}
     expect:
       rows:
         - {category: food, transaction_count: 2, fraud_count: 1, fraud_rate: 50.0, total_amount: 400.0, fraud_amount: 300.0}
@@ -35,9 +35,9 @@ unit_tests:
     given:
       - input: ref('stg_transactions')
         rows:
-          - {transaction_date: '2020-01-01', state: CA, amount: 100.0, amount_bucket: SMALL}
-          - {transaction_date: '2020-01-01', state: CA, amount: 500.0, amount_bucket: LARGE}
-          - {transaction_date: '2020-01-01', state: NY, amount: 25.0, amount_bucket: SMALL}
+          - {transaction_date: '2020-01-01', state: CA, amount: 100.0, amount_bucket: SMALL, transaction_time: '2020-01-01 00:00:00', transaction_hour: 0, weekday: 3, merchant: shop, category: food, gender: F, customer_id: test, is_fraud: 0}
+          - {transaction_date: '2020-01-01', state: CA, amount: 500.0, amount_bucket: LARGE, transaction_time: '2020-01-01 00:00:00', transaction_hour: 0, weekday: 3, merchant: shop, category: food, gender: F, customer_id: test, is_fraud: 0}
+          - {transaction_date: '2020-01-01', state: NY, amount: 25.0, amount_bucket: SMALL, transaction_time: '2020-01-01 00:00:00', transaction_hour: 0, weekday: 3, merchant: shop, category: food, gender: F, customer_id: test, is_fraud: 0}
     expect:
       rows:
         - {transaction_date: '2020-01-01', state: CA, transaction_count: 2, total_amount: 600.0, avg_amount: 300.0, large_transaction_share: 50.0}
