@@ -13,6 +13,8 @@ services:
     volumes:
       - dbt_clickhouse:/var/lib/clickhouse
       - ./dbt/bootstrap:/docker-entrypoint-initdb.d:ro
+      - ./dbt/clickhouse/server.xml:/etc/clickhouse-server/config.d/homework.xml:ro
+      - ./dbt/clickhouse/users.xml:/etc/clickhouse-server/users.d/homework.xml:ro
     healthcheck:
       test: ["CMD", "clickhouse-client", "--user", "dbt", "--password", "local_dbt_password", "--query", "SELECT 1"]
       interval: 5s
