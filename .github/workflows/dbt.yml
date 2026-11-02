@@ -1,0 +1,56 @@
+name: dbt ClickHouse validation
+on:
+  push:
+    paths: ['dbt/**', 'scripts/**', 'requirements-dbt.txt', '.github/workflows/dbt.yml', '.sqlfluff']
+  pull_request:
+    paths: ['dbt/**', 'scripts/**', 'requirements-dbt.txt', '.github/workflows/dbt.yml', '.sqlfluff']
+  workflow_dispatch:
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:25.3
+        env:
+          CLICKHOUSE_USER: dbt
+          CLICKHOUSE_PASSWORD: local_dbt_password
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+        ports: ['18123:8123']
+        options: >-
+          --health-cmd "clickhouse-client --user dbt --password local_dbt_password --query 'SELECT 1'"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dbt.txt
+      - run: pip install -r requirements-dbt.txt
+      - name: Bootstrap source and load synthetic CI fixture
+        run: |
+          python scripts/generate_dbt_fixture.py
+          python scripts/load_dbt_data.py --bootstrap --csv data/ci_transactions.csv
+      - name: Install dbt packages
+        working-directory: dbt
+        run: dbt deps --profiles-dir .
+      - name: Build and test
+        working-directory: dbt
+        run: |
+          set -o pipefail
+          dbt build --profiles-dir . 2>&1 | tee build.log
+          dbt test --profiles-dir . 2>&1 | tee test.log
+      - name: SQL lint
+        working-directory: dbt
+        run: sqlfluff lint models tests --config .sqlfluff
+      - name: Generate documentation
+        working-directory: dbt
+        run: dbt docs generate --profiles-dir .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dbt-validation-and-docs
+          path: |
+            dbt/target/
+            dbt/*.log

@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sqlfluff-lint
+        name: SQLFluff (dbt ClickHouse)
+        entry: python scripts/lint_dbt.py
+        language: system
+        files: ^dbt/(models|macros|tests)/.*\.sql$
+        exclude: ^dbt/tests/fixtures/

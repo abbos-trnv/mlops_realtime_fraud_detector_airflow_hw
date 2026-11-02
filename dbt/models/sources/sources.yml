@@ -1,0 +1,23 @@
+version: 2
+sources:
+  - name: raw
+    database: transactions_db
+    schema: transactions_db
+    description: "Размеченные транзакции Kaggle teta-ml-1-2025; исходный train.csv."
+    tables:
+      - name: transactions
+        description: "Одна строка — одна транзакция. В исходных данных нет надёжного transaction_id."
+        columns:
+          - name: transaction_time
+            description: "Время транзакции, интерпретируемое в UTC."
+            tests: [not_null]
+          - name: amount
+            description: "Сумма транзакции в единицах исходного датасета."
+            tests: [not_null]
+          - name: target
+            description: "Разметка: 1 — фрод, 0 — обычная транзакция."
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [0, 1]
+                  quote: false
