@@ -1,9 +1,9 @@
 20:21:53  Running with dbt=1.9.8
 20:21:54  Registered adapter: clickhouse=1.9.5
 20:21:58  Found 7 models, 76 data tests, 1 source, 871 macros, 4 unit tests
-20:21:58  
+20:21:58
 20:21:58  Concurrency: 1 threads (target='local')
-20:21:58  
+20:21:58
 20:22:03  1 of 80 START test accepted_values_mart_customer_risk_profile_risk_level__HIGH__MEDIUM__LOW  [RUN]
 20:22:03  1 of 80 PASS accepted_values_mart_customer_risk_profile_risk_level__HIGH__MEDIUM__LOW  [PASS in 0.29s]
 20:22:03  2 of 80 START test accepted_values_mart_merchant_analytics_is_suspicious__False__0__1  [RUN]
@@ -164,9 +164,9 @@
 20:22:12  79 of 80 PASS mart_fraud_by_category::category_fraud_counts_and_amounts ........ [PASS in 1.00s]
 20:22:12  80 of 80 START unit_test stg_transactions::staging_amount_boundaries_and_normalization  [RUN]
 20:22:13  80 of 80 PASS stg_transactions::staging_amount_boundaries_and_normalization .... [PASS in 0.38s]
-20:22:13  
+20:22:13
 20:22:13  Finished running 76 data tests, 4 unit tests in 0 hours 0 minutes and 14.60 seconds (14.60s).
-20:22:13  
+20:22:13
 20:22:13  Completed successfully
-20:22:13  
+20:22:13
 20:22:13  Done. PASS=80 WARN=0 ERROR=0 SKIP=0 TOTAL=80
