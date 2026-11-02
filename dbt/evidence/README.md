@@ -10,5 +10,8 @@ https://github.com/abbos-trnv/mlops_realtime_fraud_detector_airflow_hw/actions/r
 
 В CI используется детерминированный синтетический набор из 400 строк.
 Полный Kaggle train.csv (786431 строка) загружен локально в ClickHouse.
-Локальный полный build прерывался из-за сбоев Docker Engine; его нельзя считать успешным.
+Все шесть витрин построены локально. После временного обрыва Docker Engine
+витрина `mart_fraud_by_state` была отдельно успешно пересобрана.
+Итоговый `dbt test` на полном наборе прошёл: PASS=80, WARN=0, ERROR=0, SKIP=0.
+Фактический лог — `test-local.txt`. Проверка pre-commit из корня репозитория также прошла.
 CSV и персональная конфигурация в Git не публикуются.

@@ -118,3 +118,5 @@ Workflow `.github/workflows/dbt.yml` поднимает чистый ClickHouse,
 Список реализованных витрин и проверок приведён выше.
 
 Результаты успешного CI-прогона и скриншот графа: [evidence/README.md](evidence/README.md).
+Полный локальный Kaggle-набор: 786431 строка; все 80 тестов прошли.
+Фактический лог: [evidence/test-local.txt](evidence/test-local.txt).
