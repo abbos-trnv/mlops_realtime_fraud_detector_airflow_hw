@@ -2,7 +2,10 @@
 dialect = clickhouse
 templater = dbt
 max_line_length = 160
-exclude_rules = ambiguous.column_count,structure.column_order,references.qualification
+exclude_rules = ambiguous.column_count,structure.column_order,references.qualification,capitalisation.functions
+
+[sqlfluff:rules:references.keywords]
+ignore_words = state,weekday
 
 [sqlfluff:templater:dbt]
 project_dir = dbt
