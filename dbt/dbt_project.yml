@@ -8,6 +8,9 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 clean-targets: ["target", "dbt_packages"]
+dispatch:
+  - macro_namespace: dbt_date
+    search_order: ['fraud_analytics', 'dbt_date']
 vars:
   "dbt_date:time_zone": UTC
 models:

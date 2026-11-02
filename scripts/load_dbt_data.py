@@ -23,7 +23,7 @@ def request(query, body=None):
     headers = {"Authorization": "Basic " + base64.b64encode(credentials.encode()).decode()}
     if body is not None and hasattr(body, 'fileno'):
         headers['Content-Length'] = str(os.fstat(body.fileno()).st_size)
-    req = Request(url + "/?" + urlencode({"query": query}), data=body, headers=headers)
+    req = Request(url + "/?" + urlencode({"query": query}), data=body, headers=headers, method='POST')
     try:
         # Local database traffic must not pass through a corporate/VPN proxy.
         opener = build_opener(ProxyHandler({})) if urlparse(url).hostname in ('localhost', '127.0.0.1') else build_opener()
