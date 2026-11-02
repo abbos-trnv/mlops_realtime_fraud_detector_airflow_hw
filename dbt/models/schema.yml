@@ -1,0 +1,272 @@
+version: 2
+models:
+  - name: stg_transactions
+    description: "Нормализованные транзакции; одна строка сохраняется для каждой исходной записи."
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 1
+    columns:
+      - name: transaction_time
+        description: "Время события UTC."
+        tests:
+          - not_null
+      - name: transaction_date
+        description: "Календарная дата UTC."
+        tests:
+          - not_null
+      - name: transaction_hour
+        description: "Час UTC от 0 до 23."
+        tests:
+          - not_null
+      - name: weekday
+        description: "ISO день недели: понедельник 1, воскресенье 7."
+        tests:
+          - not_null
+      - name: merchant
+        description: "Мерчант без пробелов по краям."
+        tests:
+          - not_null
+      - name: category
+        description: "Категория в нижнем регистре."
+        tests:
+          - not_null
+      - name: amount
+        description: "Сумма исходной транзакции."
+        tests:
+          - not_null
+      - name: gender
+        description: "Пол из исходного набора: M или F."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['M', 'F']
+      - name: state
+        description: "Код штата США."
+        tests:
+          - not_null
+      - name: customer_id
+        description: "Псевдоидентификатор MD5 имени, фамилии, адреса и штата; возможны коллизии идентичности."
+        tests:
+          - not_null
+      - name: is_fraud
+        description: "Истинная метка фрода 0/1."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+              quote: false
+      - name: amount_bucket
+        description: "SMALL <100, MEDIUM от 100 до 500, LARGE >=500."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SMALL', 'MEDIUM', 'LARGE']
+  - name: mart_daily_state_metrics
+    description: "Аналитическая витрина mart_daily_state_metrics на всём размеченном наборе."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [transaction_date, state]
+    columns:
+      - name: transaction_date
+        description: "Дата транзакций UTC."
+        tests:
+          - not_null
+      - name: state
+        description: "Код штата."
+        tests:
+          - not_null
+      - name: transaction_count
+        description: "Количество транзакций."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Общий оборот."
+        tests:
+          - not_null
+      - name: avg_amount
+        description: "Средний чек."
+        tests:
+          - not_null
+      - name: p95_amount
+        description: "Точный 95-й процентиль суммы."
+        tests:
+          - not_null
+      - name: large_transaction_share
+        description: "Доля сумм >=500 в процентах."
+        tests:
+          - not_null
+  - name: mart_fraud_by_category
+    description: "Аналитическая витрина mart_fraud_by_category на всём размеченном наборе."
+    columns:
+      - name: category
+        description: "Категория транзакции."
+        tests:
+          - not_null
+          - unique
+      - name: transaction_count
+        description: "Число транзакций."
+        tests:
+          - not_null
+      - name: fraud_count
+        description: "Число фродов."
+        tests:
+          - not_null
+      - name: fraud_rate
+        description: "Процент фрода от 0 до 100."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Оборот категории."
+        tests:
+          - not_null
+      - name: fraud_amount
+        description: "Сумма фродовых транзакций."
+        tests:
+          - not_null
+  - name: mart_fraud_by_state
+    description: "Аналитическая витрина mart_fraud_by_state на всём размеченном наборе."
+    columns:
+      - name: state
+        description: "Штат."
+        tests:
+          - not_null
+          - unique
+      - name: transaction_count
+        description: "Число транзакций."
+        tests:
+          - not_null
+      - name: fraud_count
+        description: "Число фродов."
+        tests:
+          - not_null
+      - name: fraud_rate
+        description: "Процент фрода."
+        tests:
+          - not_null
+      - name: unique_customers
+        description: "Точное число псевдоидентификаторов клиентов."
+        tests:
+          - not_null
+      - name: unique_merchants
+        description: "Точное число мерчантов."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Оборот штата."
+        tests:
+          - not_null
+      - name: fraud_amount
+        description: "Сумма фрода."
+        tests:
+          - not_null
+  - name: mart_customer_risk_profile
+    description: "Аналитическая витрина mart_customer_risk_profile на всём размеченном наборе."
+    columns:
+      - name: customer_id
+        description: "Псевдоидентификатор клиента."
+        tests:
+          - not_null
+          - unique
+      - name: transaction_count
+        description: "Количество операций клиента."
+        tests:
+          - not_null
+      - name: first_transaction_at
+        description: "Первая операция в выборке."
+        tests:
+          - not_null
+      - name: last_transaction_at
+        description: "Последняя операция в выборке."
+        tests:
+          - not_null
+      - name: fraud_count
+        description: "Количество размеченных фродов."
+        tests:
+          - not_null
+      - name: fraud_rate
+        description: "Процент фрода клиента."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Оборот клиента."
+        tests:
+          - not_null
+      - name: avg_amount
+        description: "Средний чек клиента."
+        tests:
+          - not_null
+      - name: risk_level
+        description: "HIGH >=5%, MEDIUM >=1%, LOW <1%; описательный профиль, не прогноз."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['HIGH', 'MEDIUM', 'LOW']
+  - name: mart_hourly_fraud_pattern
+    description: "Аналитическая витрина mart_hourly_fraud_pattern на всём размеченном наборе."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [weekday, transaction_hour]
+    columns:
+      - name: weekday
+        description: "ISO день недели 1–7."
+        tests:
+          - not_null
+      - name: transaction_hour
+        description: "Час 0–23 UTC."
+        tests:
+          - not_null
+      - name: transaction_count
+        description: "Число операций в этом временном сегменте."
+        tests:
+          - not_null
+      - name: fraud_count
+        description: "Число фродов."
+        tests:
+          - not_null
+      - name: fraud_rate
+        description: "Процент фрода во временном сегменте."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Общий оборот."
+        tests:
+          - not_null
+      - name: avg_amount
+        description: "Средний чек."
+        tests:
+          - not_null
+  - name: mart_merchant_analytics
+    description: "Аналитическая витрина mart_merchant_analytics на всём размеченном наборе."
+    columns:
+      - name: merchant
+        description: "Мерчант."
+        tests:
+          - not_null
+          - unique
+      - name: transaction_count
+        description: "Количество операций."
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Оборот мерчанта."
+        tests:
+          - not_null
+      - name: avg_amount
+        description: "Средний чек."
+        tests:
+          - not_null
+      - name: fraud_count
+        description: "Количество фродов."
+        tests:
+          - not_null
+      - name: fraud_rate
+        description: "Процент фрода."
+        tests:
+          - not_null
+      - name: is_suspicious
+        description: "1 при >=20 операциях и fraud_rate >=5%, иначе 0."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+              quote: false

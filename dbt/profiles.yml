@@ -1,0 +1,14 @@
+fraud_analytics:
+  target: local
+  outputs:
+    local:
+      type: clickhouse
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      port: "{{ env_var('DBT_PORT', '18123') | int }}"
+      user: "{{ env_var('DBT_USER', 'dbt') }}"
+      password: "{{ env_var('DBT_PASSWORD', 'local_dbt_password') }}"
+      schema: fraud_analytics
+      secure: false
+      threads: 1
+      connect_timeout: 10
+      send_receive_timeout: 300

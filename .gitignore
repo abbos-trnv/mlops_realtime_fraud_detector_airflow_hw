@@ -1,4 +1,10 @@
 .venv
+.venv-dbt/
+.uv-cache/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+.docker-pull*.log
 .env
 *.DS_Store
 *.csv

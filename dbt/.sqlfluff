@@ -1,0 +1,9 @@
+[sqlfluff]
+dialect = clickhouse
+templater = dbt
+max_line_length = 160
+exclude_rules = ambiguous.column_count,structure.column_order,references.qualification
+
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = .

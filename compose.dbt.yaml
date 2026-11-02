@@ -1,0 +1,22 @@
+name: antifraud-dbt
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.3
+    environment:
+      CLICKHOUSE_USER: dbt
+      CLICKHOUSE_PASSWORD: local_dbt_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "127.0.0.1:18123:8123"
+    mem_limit: 2g
+    cpus: 2
+    volumes:
+      - dbt_clickhouse:/var/lib/clickhouse
+      - ./dbt/bootstrap:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "dbt", "--password", "local_dbt_password", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+volumes:
+  dbt_clickhouse:
