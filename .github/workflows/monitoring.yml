@@ -1,0 +1,49 @@
+name: Live fraud monitoring
+on:
+  push:
+    branches: [hw5-monitoring]
+  pull_request:
+    paths: ['monitoring/**', 'fraud_detector/**', 'scoring_writer/**', 'transaction_simulator/**', 'docker-compose.yaml', 'scripts/check_monitoring.py', '.github/workflows/monitoring.yml']
+  workflow_dispatch:
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      TRAIN_DATA_CSV: ./data/monitoring-ci.csv
+      SEND_INTERVAL_SECONDS: '0.2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Create deterministic source fixture
+        run: |
+          cp .env.example .env
+          python scripts/generate_monitoring_fixture.py
+      - name: Start live Kafka scoring and monitoring
+        run: docker compose up -d --build
+      - name: Validate scoring regression tests
+        run: docker compose run --rm --no-deps -v ${{ github.workspace }}/tests:/app/tests fraud_detector python -m unittest discover -s tests -p test_monitoring.py -v
+      - name: Wait for real events and check dashboard queries
+        run: |
+          set -o pipefail
+          mkdir -p monitoring/evidence
+          python scripts/check_monitoring.py | tee monitoring/evidence/live-check.json
+      - name: Build training stack
+        run: docker compose --profile training up -d --build airflow
+      - name: Retrain and check hot reload
+        run: python scripts/check_model_reload.py
+      - name: Verify stopped-flow alert
+        run: python scripts/check_flow_alert.py
+      - name: Preserve diagnostics
+        if: always()
+        run: docker compose --profile training logs --no-color > monitoring/evidence/compose.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monitoring-live-evidence
+          path: monitoring/evidence/
+      - name: Stop own stack
+        if: always()
+        run: docker compose --profile training down

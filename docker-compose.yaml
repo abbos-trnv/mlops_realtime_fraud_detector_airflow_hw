@@ -77,6 +77,11 @@ services:
 
   fraud_detector:
     build: ./fraud_detector
+    restart: unless-stopped
+    cpus: 1
+    mem_limit: 768m
+    ports:
+      - "127.0.0.1:8000:8000"
     networks:
       - ml-scorer
     environment:
@@ -84,6 +89,7 @@ services:
       KAFKA_TRANSACTIONS_TOPIC: "transactions"
       KAFKA_SCORING_TOPIC: "scoring"
       MODELS_DIR: "/models"
+      METRICS_PORT: "8000"
     volumes:
       - model_registry:/models
     depends_on:
@@ -120,9 +126,10 @@ services:
       KAFKA_BROKERS: "kafka:9092"
       KAFKA_TOPIC: "transactions"
       TRANSACTIONS_CSV_PATH: /data/train.csv
-      SEND_INTERVAL_SECONDS: "0.1"
+      SEND_INTERVAL_SECONDS: "${SEND_INTERVAL_SECONDS:-0.5}"
     volumes:
       - ${TRAIN_DATA_CSV}:/data/train.csv:ro
+      - ./scripts/send_monitoring_probe.py:/app/send_monitoring_probe.py:ro
     depends_on:
       kafka:
         condition: service_healthy
@@ -132,6 +139,9 @@ services:
 
   scoring_writer:
     build: ./scoring_writer
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8001"
     networks:
       - ml-scorer
     env_file:
@@ -144,6 +154,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      METRICS_PORT: "8001"
+      GRAFANA_DB_USER: ${GRAFANA_DB_USER:-grafana_ro}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-local_grafana_ro}
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,6 +167,7 @@ services:
 
   data_loader:
     build: ./data_loader
+    profiles: ["training"]
     networks:
       - ml-scorer
     env_file:
@@ -176,6 +190,9 @@ services:
 
   airflow:
     build: ./airflow
+    profiles: ["training"]
+    cpus: 2
+    mem_limit: 2g
     user: "0:0"
     networks:
       - ml-scorer
@@ -184,7 +201,7 @@ services:
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow_state/airflow.db
       AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
@@ -217,6 +234,45 @@ services:
       data_loader:
         condition: service_completed_successfully
 
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    networks: [ml-scorer]
+    ports: ["127.0.0.1:9090:9090"]
+    mem_limit: 384m
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=24h", "--storage.tsdb.retention.size=256MB"]
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    networks: [ml-scorer]
+    ports: ["127.0.0.1:3000:3000"]
+    mem_limit: 512m
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-local_grafana_admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      POSTGRES_DB: ${POSTGRES_DB}
+      GRAFANA_DB_USER: ${GRAFANA_DB_USER:-grafana_ro}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-local_grafana_ro}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      scoring_writer:
+        condition: service_started
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    networks: [ml-scorer]
+    pid: host
+    command: ["--path.rootfs=/host", "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run)($$|/)"]
+    volumes:
+      - /:/host:ro,rslave
+    mem_limit: 128m
+
 networks:
   ml-scorer:
     name: ml-scorer
@@ -228,3 +284,5 @@ volumes:
   model_registry:
   dq_reports:
   airflow_state:
+  prometheus_data:
+  grafana_data:

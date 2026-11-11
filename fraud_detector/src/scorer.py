@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from catboost import CatBoostClassifier
+from metrics import model_loaded, MODEL_LOAD_ERRORS
 
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,14 @@ def _current_model():
     global _model, _version
     version = _read_latest_version()
     if _model is None or version != _version:
-        _model = _load_model(version)
+        try:
+            candidate = _load_model(version)
+        except Exception:
+            MODEL_LOAD_ERRORS.inc()
+            raise
+        _model = candidate
         _version = version
+        model_loaded(version)
     return _model, _version
 
 
@@ -79,7 +86,7 @@ def make_pred(dt, source_info="kafka"):
             column = features[idx]
             if not pd.api.types.is_numeric_dtype(frame[column]):
                 frame[column] = frame[column].astype(str)
-        y_proba = model.predict_proba(frame)[:, 1]
+        y_proba = model.predict_proba(frame, thread_count=1)[:, 1]
 
     submission = pd.DataFrame({
         "score": y_proba,

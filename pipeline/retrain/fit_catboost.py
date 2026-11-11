@@ -52,6 +52,7 @@ def fit_catboost(preproc_info: dict) -> dict:
         early_stopping_rounds=20,
         random_seed=42,
         allow_writing_files=False,
+        thread_count=2,
         verbose=20,
     )
     model.fit(

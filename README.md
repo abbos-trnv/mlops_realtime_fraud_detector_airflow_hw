@@ -1,5 +1,12 @@
 # Антифрод: поток транзакций, скоринг и переобучение
 
+## Домашнее задание 5 — мониторинг
+
+Prometheus, Grafana, Node Exporter, четыре собственных дашборда и алерты:
+[инструкция запуска и проверки](monitoring/README.md).
+Обычный `docker compose up --build -d` запускает поток и мониторинг.
+Для Airflow используйте `docker compose --profile training up --build -d airflow`.
+
 ## Домашнее задание 4
 
 dbt-проект с ClickHouse запускается отдельно от Airflow/Kafka. Инструкция, шесть витрин,
