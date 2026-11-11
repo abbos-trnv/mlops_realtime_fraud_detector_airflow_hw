@@ -184,7 +184,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "1 - node_filesystem_avail_bytes{mountpoint='/',fstype!~'tmpfs|overlay'} / node_filesystem_size_bytes{mountpoint='/',fstype!~'tmpfs|overlay'}",
+          "expr": "1 - node_filesystem_avail_bytes{mountpoint=~'/|/parent-distro/mnt/docker-desktop-disk',fstype!~'tmpfs|overlay'} / node_filesystem_size_bytes{mountpoint=~'/|/parent-distro/mnt/docker-desktop-disk',fstype!~'tmpfs|overlay'}",
           "legendFormat": "{{instance}}",
           "datasource": {
             "type": "prometheus",
