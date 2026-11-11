@@ -23,7 +23,13 @@ jobs:
           cp .env.example .env
           python scripts/generate_monitoring_fixture.py
       - name: Start live Kafka scoring and monitoring
-        run: docker compose up -d --build
+        run: |
+          for attempt in 1 2 3; do
+            if docker compose build; then break; fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 5
+          done
+          docker compose up -d --no-build
       - name: Validate scoring regression tests
         run: docker compose run --rm --no-deps -v ${{ github.workspace }}/tests:/app/tests fraud_detector python -m unittest discover -s tests -p test_monitoring.py -v
       - name: Wait for real events and check dashboard queries
