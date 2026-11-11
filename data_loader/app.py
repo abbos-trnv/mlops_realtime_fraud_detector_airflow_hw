@@ -126,22 +126,16 @@ def row_count(conn):
 
 
 def load_csv():
+    """Yield bounded CSV batches; the caller commits the complete initial load once."""
     if not CSV_PATH.exists():
-        raise FileNotFoundError(f"Не найден файл размеченных данных: {CSV_PATH}")
-    logger.info("Чтение %s", CSV_PATH)
-    frame = pd.read_csv(CSV_PATH)
-    missing = [column for column in COLUMNS if column not in frame.columns]
-    if missing:
-        raise ValueError(f"В CSV нет колонок: {missing}")
-    frame = frame[COLUMNS].copy()
-    frame["transaction_time"] = pd.to_datetime(frame["transaction_time"])
-    logger.info(
-        "CSV прочитан: %s строк, время с %s по %s",
-        len(frame),
-        frame["transaction_time"].min(),
-        frame["transaction_time"].max(),
-    )
-    return frame
+        raise FileNotFoundError(f"Missing input CSV: {CSV_PATH}")
+    for frame in pd.read_csv(CSV_PATH, chunksize=50000):
+        missing = [column for column in COLUMNS if column not in frame.columns]
+        if missing:
+            raise ValueError(f"Missing columns: {missing}")
+        frame = frame[COLUMNS].copy()
+        frame["transaction_time"] = pd.to_datetime(frame["transaction_time"])
+        yield frame
 
 
 def copy_frame(conn, frame):
@@ -165,7 +159,6 @@ def copy_frame(conn, frame):
             """,
             buffer,
         )
-    conn.commit()
     logger.info("В витрину labeled_transactions загружено %s строк.", len(frame))
 
 
@@ -241,7 +234,9 @@ def main():
     try:
         ensure_schema(conn)
         if row_count(conn) == 0:
-            copy_frame(conn, load_csv())
+            for frame in load_csv():
+                copy_frame(conn, frame)
+            conn.commit()
         else:
             logger.info("Витрина labeled_transactions уже заполнена, повторная загрузка пропущена.")
         ensure_time_index(conn)
