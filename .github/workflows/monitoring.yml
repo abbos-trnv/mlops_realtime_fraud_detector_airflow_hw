@@ -19,6 +19,7 @@ jobs:
           python-version: '3.12'
       - name: Create deterministic source fixture
         run: |
+          mkdir -p monitoring/evidence
           cp .env.example .env
           python scripts/generate_monitoring_fixture.py
       - name: Start live Kafka scoring and monitoring
