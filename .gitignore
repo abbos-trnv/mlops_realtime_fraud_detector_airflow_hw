@@ -9,6 +9,9 @@ dbt/ci-artifacts/
 .dbt-validation.zip
 dbt/evidence/build.txt
 .docker-pull*.log
+monitoring/.ci-artifacts/
+monitoring/evidence/compose.log
+monitoring/evidence/retrain.log
 .env
 *.DS_Store
 *.csv

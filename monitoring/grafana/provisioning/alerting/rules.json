@@ -1,0 +1,223 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "Fraud service rules",
+      "folder": "Fraud monitoring",
+      "interval": "10s",
+      "rules": [
+        {
+          "uid": "fraud-flow-stopped",
+          "title": "Поток скоринга остановился",
+          "condition": "B",
+          "for": "30s",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "annotations": {
+            "summary": "Последний успешный скор старше 30 секунд или scorer недоступен. Pause transaction_simulator и дождитесь обработки backlog."
+          },
+          "labels": {
+            "severity": "warning",
+            "service": "fraud-scorer"
+          },
+          "isPaused": false,
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 120,
+                "to": 0
+              },
+              "datasourceUid": "fraud-prom",
+              "model": {
+                "refId": "A",
+                "expr": "(time() - fraud_scoring_last_success_timestamp_seconds > bool 30) or (up{job='scorer'} == bool 0)",
+                "instant": true,
+                "range": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query",
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "fraud-high-ratio",
+          "title": "Высокая доля фрода",
+          "condition": "B",
+          "for": "30s",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "annotations": {
+            "summary": "Доля фрода >20% за 1 минуту. Для проверки используйте реальный повторный скоринг fraud-строк через scripts/send_monitoring_probe.py."
+          },
+          "labels": {
+            "severity": "warning",
+            "service": "fraud-scorer"
+          },
+          "isPaused": false,
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 120,
+                "to": 0
+              },
+              "datasourceUid": "fraud-prom",
+              "model": {
+                "refId": "A",
+                "expr": "sum(rate(fraud_scored_fraud_total[1m])) / clamp_min(sum(rate(fraud_scored_transactions_total[1m])), 0.000001)",
+                "instant": true,
+                "range": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.2
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query",
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "uid": "fraud-slow-scoring",
+          "title": "Скоринг медленнее 0.5 секунды p95",
+          "condition": "B",
+          "for": "1m",
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "annotations": {
+            "summary": "p95 полной обработки >0.5 секунды за 1 минуту."
+          },
+          "labels": {
+            "severity": "warning",
+            "service": "fraud-scorer"
+          },
+          "isPaused": false,
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 120,
+                "to": 0
+              },
+              "datasourceUid": "fraud-prom",
+              "model": {
+                "refId": "A",
+                "expr": "histogram_quantile(0.95, sum by(le)(rate(fraud_scoring_seconds_bucket[1m])))",
+                "instant": true,
+                "range": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    },
+                    "type": "query",
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

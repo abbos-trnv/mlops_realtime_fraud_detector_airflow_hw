@@ -6,7 +6,7 @@ import os
 import random
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -30,7 +30,7 @@ def load_transactions(path: Path) -> pd.DataFrame:
     """Читает размеченный CSV один раз и держит его в памяти для случайной выборки."""
     if not path.exists():
         raise FileNotFoundError(f"Не найден файл транзакций: {path}")
-    frame = pd.read_csv(path)
+    frame = pd.read_csv(path, nrows=int(os.getenv("SIMULATOR_SAMPLE_ROWS", "20000")))
     if "transaction_time" not in frame.columns:
         raise ValueError("В CSV нет колонки transaction_time")
     logger.info("Загружено %s строк из %s", len(frame), path)
@@ -49,9 +49,10 @@ def json_safe(value):
 def build_message(row: pd.Series) -> dict:
     """Собирает сообщение топика transactions: новый id и текущее время события."""
     data = {column: json_safe(value) for column, value in row.items()}
-    data["transaction_time"] = datetime.now().strftime(TIME_FORMAT)
+    data["transaction_time"] = datetime.now(timezone.utc).strftime(TIME_FORMAT)
     return {
         "transaction_id": str(uuid.uuid4()),
+        "emitted_at": datetime.now(timezone.utc).isoformat(),
         "data": data,
     }
 

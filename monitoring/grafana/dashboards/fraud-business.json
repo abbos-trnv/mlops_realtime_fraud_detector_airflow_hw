@@ -1,0 +1,246 @@
+{
+  "uid": "fraud-business",
+  "title": "04 • Бизнес и сегменты",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": [
+    "fraud",
+    "homework"
+  ],
+  "timezone": "utc",
+  "editable": false,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Скоры и доля фрода по версии модели",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "fraud-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "fraud-postgres"
+          },
+          "rawSql": "SELECT coalesce(model_version,'unknown') AS model_version, count(*) AS scores, avg(fraud_flag::float)*100 AS fraud_percent FROM scores WHERE $__timeFilter(created_at) AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) AND ('__all' IN (${merchant:sqlstring}) OR merch IN (${merchant:sqlstring})) GROUP BY 1 ORDER BY scores DESC",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "title": "Плотность скоров выбранного сегмента",
+      "type": "barchart",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "fraud-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "fraud-postgres"
+          },
+          "rawSql": "WITH bins AS (SELECT least(19,floor(score*20)::int) AS bucket, count(*) AS n FROM scores WHERE $__timeFilter(created_at) AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) AND ('__all' IN (${merchant:sqlstring}) OR merch IN (${merchant:sqlstring})) GROUP BY 1) SELECT to_char(bucket*0.05,'FM0.00') || '–' || to_char((bucket+1)*0.05,'FM0.00') AS score_interval, n::float / (sum(n) OVER () * 0.05) AS density FROM bins ORDER BY bucket",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xField": "score_interval",
+        "showValue": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "TPS выбранного сегмента по времени записи",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "fraud-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "fraud-postgres"
+          },
+          "rawSql": "SELECT $__timeGroupAlias(created_at, '$__interval'), count(*) / ($__interval_ms / 1000.0) AS tps FROM scores WHERE $__timeFilter(created_at) AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) AND ('__all' IN (${merchant:sqlstring}) OR merch IN (${merchant:sqlstring})) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "title": "Доля фрода по категории — последние 1000 строк (глобально)",
+      "type": "barchart",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "fraud-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "fraud-postgres"
+          },
+          "rawSql": "WITH recent AS (SELECT cat_id, fraud_flag FROM scores ORDER BY id DESC LIMIT 1000) SELECT coalesce(cat_id,'unknown') AS category, avg(fraud_flag::float)*100 AS fraud_percent FROM recent GROUP BY 1 ORDER BY fraud_percent DESC",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xField": "category",
+        "showValue": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Объём средств, помеченных как фрод — выбранный сегмент",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "fraud-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "fraud-postgres"
+          },
+          "rawSql": "SELECT $__timeGroupAlias(created_at, '$__interval'), coalesce(sum(amount) FILTER (WHERE fraud_flag=1),0) AS flagged_amount FROM scores WHERE $__timeFilter(created_at) AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) AND ('__all' IN (${merchant:sqlstring}) OR merch IN (${merchant:sqlstring})) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "state",
+        "label": "Штат",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "fraud-postgres"
+        },
+        "query": "SELECT DISTINCT us_state FROM scores WHERE us_state IS NOT NULL ORDER BY 1",
+        "definition": "SELECT DISTINCT us_state FROM scores WHERE us_state IS NOT NULL ORDER BY 1",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "__all",
+        "refresh": 1,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "merchant",
+        "label": "Мерчант",
+        "type": "query",
+        "datasource": {
+          "type": "postgres",
+          "uid": "fraud-postgres"
+        },
+        "query": "SELECT DISTINCT merch FROM scores WHERE merch IS NOT NULL AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) ORDER BY 1",
+        "definition": "SELECT DISTINCT merch FROM scores WHERE merch IS NOT NULL AND ('__all' IN (${state:sqlstring}) OR us_state IN (${state:sqlstring})) ORDER BY 1",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "__all",
+        "refresh": 1,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      }
+    ]
+  }
+}
