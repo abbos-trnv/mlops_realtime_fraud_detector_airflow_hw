@@ -9,7 +9,12 @@ from check_monitoring import eventually, fetch, GRAFANA
 def find_alert():
     response = fetch(GRAFANA + "/api/prometheus/grafana/api/v1/rules", auth=True)
     rules = [rule for group in response["data"]["groups"] for rule in group["rules"]]
-    rule = next(rule for rule in rules if rule.get("grafana_alert", {}).get("uid") == "fraud-flow-stopped")
+    matches = [rule for rule in rules if (
+        rule.get("grafana_alert", {}).get("uid") == "fraud-flow-stopped"
+        or rule.get("name") == "Поток скоринга остановился"
+    )]
+    assert len(matches) == 1, response
+    rule = matches[0]
     assert rule["state"] == "firing", rule
     return {"name": rule["name"], "state": rule["state"], "alerts": rule.get("alerts", [])}
 
