@@ -8,6 +8,8 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
       KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
+      # The seminar JVM predates current cgroup-v2 hosts; heap is explicit above.
+      JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport -XX:ActiveProcessorCount=2"
     ports:
       - "2181:2181"
     healthcheck:
@@ -29,6 +31,7 @@ services:
       - "9095:9095"
     environment:
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport -XX:ActiveProcessorCount=2"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9095
@@ -45,6 +48,8 @@ services:
   # Сервис для создания топиков при старте
   kafka-setup:
     image: confluentinc/cp-kafka:7.3.0
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport -XX:ActiveProcessorCount=2"
     depends_on:
       kafka:
         condition: service_healthy  # Ждем пока Kafka станет здоровой
