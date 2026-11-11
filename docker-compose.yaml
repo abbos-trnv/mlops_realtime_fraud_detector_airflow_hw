@@ -10,12 +10,19 @@ services:
       KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
     ports:
       - "2181:2181"
+    healthcheck:
+      test: ["CMD", "cub", "zk-ready", "localhost:2181", "5"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
 
   # Сервис Kafka
   kafka:
     image: confluentinc/cp-kafka:7.3.0
+    restart: unless-stopped
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     networks:
       - ml-scorer
     ports:
@@ -33,7 +40,7 @@ services:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9095", "--list"]
       interval: 5s
       timeout: 10s
-      retries: 10
+      retries: 30
 
   # Сервис для создания топиков при старте
   kafka-setup:
