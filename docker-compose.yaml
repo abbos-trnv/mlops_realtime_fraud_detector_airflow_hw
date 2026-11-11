@@ -40,9 +40,11 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"  # Отключаем автосоздание топиков
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9095", "--list"]
-      interval: 5s
-      timeout: 10s
+      # A full kafka-topics invocation launches another JVM every time.
+      # kafka-setup verifies the actual broker API before starting the consumers.
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/9095'"]
+      interval: 10s
+      timeout: 3s
       retries: 30
 
   # Сервис для создания топиков при старте
@@ -280,7 +282,7 @@ services:
     image: prom/node-exporter:v1.9.1
     networks: [ml-scorer]
     pid: host
-    command: ["--path.rootfs=/host", "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run)($$|/)"]
+    command: ["--path.rootfs=/host", "--collector.disable-defaults", "--collector.cpu", "--collector.meminfo", "--collector.netdev", "--collector.diskstats", "--collector.filesystem", "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|mnt|host_mnt)($$|/)"]
     volumes:
       - /:/host:ro
     mem_limit: 128m
