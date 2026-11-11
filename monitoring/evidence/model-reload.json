@@ -1,0 +1,20 @@
+{
+  "previous_version": "initial",
+  "published_version": "20261111T105141",
+  "new_scores": 4,
+  "same_scorer_container": true,
+  "annotation": [
+    {
+      "metric": {
+        "__name__": "fraud_model_loaded_at_seconds",
+        "instance": "fraud_detector:8000",
+        "job": "scorer",
+        "version": "20261111T105141"
+      },
+      "value": [
+        1794394302.621,
+        "1794394301.7741573"
+      ]
+    }
+  ]
+}
